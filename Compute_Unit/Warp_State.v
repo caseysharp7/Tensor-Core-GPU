@@ -16,7 +16,6 @@ module Warp_State(
         end
         else
             pc_temp <= pc;
-
     end
 
     assign pc = pc_temp + 2;
