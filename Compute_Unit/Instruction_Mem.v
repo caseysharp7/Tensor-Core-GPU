@@ -3,13 +3,14 @@
 `timescale 1ns / 1ps
 
 module Instruction_Mem(
-    input [4:0] read_addr,
+    input [PC_WIDTH-1:0] read_addr,
     output [INST_WIDTH-1:0] instruction
     );
     
+    parameter PC_WIDTH = 8;
     parameter INST_WIDTH = 16;
 
-    reg [INST_WIDTH-1:0] rom [15:0];  
+    reg [INST_WIDTH-1:0] rom [127:0];  
     
     initial  
     begin
@@ -17,7 +18,7 @@ module Instruction_Mem(
 
     end
 
-    assign instruction = rom[read_addr[4:1]];
+    assign instruction = rom[read_addr[7:1]]; 
 endmodule
 
 // ISA: 
@@ -32,3 +33,7 @@ endmodule
 
 // PULL:  (opcode)  (destination register)  (PE register)                                           (systolic array ID)  (reserved)
 //        (0101)    (rrrr)                  (rrrr)                                                  (ii)                 (ii)
+
+// LDG (load global reg) (will be just loaded with immediate)
+
+// STG (store global reg) (don't think need this)

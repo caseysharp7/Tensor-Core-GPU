@@ -2,9 +2,10 @@
 
 `timescale 1ns / 1ps
 
-module Warp_Scheduler#(parameter PC_WIDTH=5)(
+module Warp_Scheduler#(parameter PC_WIDTH=8)(
     input clk, reset,
-    output [PC_WIDTH-1:0] pc
+    output [PC_WIDTH-1:0] pc, // to instr fetch
+    output [1:0] warp_num // to LSU, threads reg file
     );
 
     wire [1:0] select_warp;
@@ -21,7 +22,7 @@ module Warp_Scheduler#(parameter PC_WIDTH=5)(
         end
     endgenerate
 
-    Mux4 mux4_inst(  // which warp is selected
+    Mux4 mux4_inst#(MUX_WIDTH = PC_WIDTH)(  // which warp is selected
         .a(pc_array[0]),
         .b(pc_array[1]),
         .c(pc_array[2]),

@@ -1,11 +1,14 @@
 // Address Generation Unit
 // exist inside of LSU
-module AGU(
+
+`timescale 1ns / 1ps
+
+module AGU (
     input logic reset,
     input logic [DATA_WIDTH-1:0] threadIdx [7:0], // come from threads reg file
     input logic [1:0] warp_num, // come from scheduler
     input logic [DATA_WIDTH-1:0] base_addr_reg, // come from global reg file
-    input logic [3:0] base_addr_imm,
+    input logic [3:0] base_addr_imm, // from instruction
 
     output logic [ADDR_WIDTH-1:0] addr [7:0]
     );

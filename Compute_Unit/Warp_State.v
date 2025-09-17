@@ -2,17 +2,16 @@
 
 `timescale 1ns / 1ps
 
-module Warp_State(
-// input will come from outside of the compute unit
+module Warp_State#(parameter PC_WIDTH = 8)(
     input clk, reset,
-    output [4:0] pc
+    output [PC_WIDTH-1:0] pc
     );
 
-    reg [4:0] pc_temp;
+    reg [PC_WIDTH-1:0] pc_temp;
 
     always@(posedge clk or posedge reset) begin
         if(reset) begin
-            pc_temp <= 5'b00000;
+            pc_temp <= 8'd0;
         end
         else
             pc_temp <= pc;
