@@ -1,19 +1,30 @@
 // Load Store Queue
 
+// to simulate the time to access main memory to show the processor works at hiding latency
+// get the data from the reg for a store or the data from the data mem for a load and simply keep it here
+// for some clock cycles and then release it to the rest of the processor
+
 module LSQ( 
     input logic clk, reset,
-    input logic [1:0] warp_num,
-    input logic [3:0] dest_reg,
-    input logic [ADDR_WIDTH-1:0] addr [7:0], 
-    input logic instr_bit, // from controller (tells if its a load (0) or store(1))
+    input logic [1:0] warp_num_in_q,
+    input logic [3:0] dest_reg_in_q, // from instruction, this will be a write reg to the threads reg file
+    input logic [ADDR_WIDTH-1:0] addr_in_q [7:0],  
+    input logic instr_bit_in_q, // from controller (tells if its a load (0) or store(1))
 
     input logic queue_write_en, // from controller
 
-    output logic [1:0] warp_num_q,
-    output logic [3:0] dest_reg_q,
-    output logic [ADDR_WIDTH-1:0] addr_q [7:0], 
-    output logic instr_bit_q,
+    output logic [1:0] warp_num_out_q,
+    output logic [3:0] dest_reg_out_q,
+    output logic [ADDR_WIDTH-1:0] addr_out_q [7:0], 
+    output logic instr_bit_out_q,
     output logic done_bit_q
+
+    // to do: 
+    input logic thread_mask_in_q,
+    input logic reg_data_in_q,
+
+    output logic thread_mask_out_q,
+    output logic reg_data_out_q
     ); // need to add data slot for writes
 
     parameter DATA_WIDTH = 16;
@@ -43,7 +54,7 @@ module LSQ(
     always_ff @(posedge clk) begin
         if(reset) begin
             for(i = 0; i < QUEUE_SIZE; i = i+1) begin
-                queue[i].counter <= 3'd0;
+                queue[i].counter <= 3'd5;
                 queue[i].instr_bit <= 1'd0;
                 queue[i].warp_num <= 2'd0;
                 queue[i].dest_reg <= 4'd0;
@@ -65,10 +76,10 @@ module LSQ(
         end 
         else if(queue_write_en & !full) begin
             queue[write_ptr].counter <= 3'd5;
-            queue[write_ptr].instr_bit <= instr_bit;
-            queue[write_ptr].warp_num <= warp_num;
-            queue[write_ptr].dest_reg <= dest_reg;
-            queue[write_ptr].addr <= addr;
+            queue[write_ptr].instr_bit <= instr_bit_in_q;
+            queue[write_ptr].warp_num <= warp_num_in_q;
+            queue[write_ptr].dest_reg <= dest_reg_in_q;
+            queue[write_ptr].addr <= addr_in_q;
             queue[write_ptr].valid_bit <= 1'b1;
             write_ptr <= write_ptr + 1;
         end
@@ -77,20 +88,20 @@ module LSQ(
     always_ff @(posedge clk) begin
         if(reset) begin
             read_ptr <= 0;
-            done_bit <= 0;
+            done_bit_q <= 0;
         end
         else if(queue[read_ptr].counter == 0 && queue[read_ptr].valid_bit) begin
-            instr_bit_q <= queue[read_ptr].instr_bit;
-            warp_num_q <= queue[read_ptr].warp_num;
-            dest_reg_q <= queue[read_ptr].dest_reg;
-            addr_q <= queue[read_ptr].addr;
+            instr_bit_out_q <= queue[read_ptr].instr_bit;
+            warp_num_out_q <= queue[read_ptr].warp_num;
+            dest_reg_out_q <= queue[read_ptr].dest_reg;
+            addr_out_q <= queue[read_ptr].addr;
             
-            done_bit <= 1;
+            done_bit_q <= 1;
 
             read_ptr = read_ptr+1;
         end
         else begin
-            done_bit <= 0;
+            done_bit_q <= 0;
         end
     end
 

@@ -5,7 +5,7 @@
 module Warp_Scheduler#(parameter PC_WIDTH=8)(
     input clk, reset,
     output [PC_WIDTH-1:0] pc, // to instr fetch
-    output [1:0] warp_num // to LSU, threads reg file
+    output [1:0] warp_num // to LSU + scoreboard, threads reg file
     );
 
     wire [1:0] select_warp;

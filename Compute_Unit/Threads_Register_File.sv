@@ -6,10 +6,11 @@ module Threads_Register_File(
     input logic clk, 
     input logic reset,
     input logic reg_write_en,  // will come from controller
-    input logic [3:0] reg_write_addr, // will come from instruction
+    input logic [3:0] reg_write_addr, // will come from LSU
     input logic [DATA_WIDTH-1:0] reg_write_data [7:0], // will come from LSU
-    input logic [3:0] reg_read_addr, // will come from instruction
-    input logic [1:0] warp_num, // will come from scheduler
+    input logic [3:0] reg_read_addr, // will come from LSU
+    input logic [1:0] warp_num_read, // will come from scheduler
+    input logic [1:0] warp_num_write, // from LSU
     
     input logic [1:0] blockIdx, // from outside of compute unit
     input logic [7:0] blockDim, // 1D, number of threads in a block, comes from outside of compute unit
@@ -42,15 +43,15 @@ module Threads_Register_File(
         end
         else if(reg_write_en && (reg_write_addr < 13)) begin
             for(i = 0; i < 8; i = i+1)
-                reg_file[(warp_num*8) + i][reg_write_addr] <= reg_write_data[i];
+                reg_file[(warp_num_write*8) + i][reg_write_addr] <= reg_write_data[i];
         end
     end
 
 
     always_comb begin
         for(i = 0; i < 8; i = i+1) begin
-            reg_threads[i] = reg_file[(warp_num*8) + i][reg_read_addr];
-            threadIdx[i] = reg_file[(warp_num*8) + i][13];
+            reg_threads[i] = reg_file[(warp_num_read*8) + i][reg_read_addr];
+            threadIdx[i] = reg_file[(warp_num_read*8) + i][13];
         end
     end
 
