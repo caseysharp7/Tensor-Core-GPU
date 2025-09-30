@@ -22,7 +22,7 @@ module Instruction_Mem(
 endmodule
 
 // ISA: 
-// LD:    (opcode)  (destination register)  (address register)  (immediate)
+// LD:    (opcode)  (destination register)  (address register)  (immediate (warp_mask))
 //        (0001)    (rrrr)                  (rrrr)              (iiii)
 
 // ST:    (opcode)  (source register)       (address register)  (immediate)
@@ -32,8 +32,8 @@ endmodule
 //        (0100)    (rrrr)                  (rrrr)                                                  (ii)                 (xx)
 
 // PULL:  (opcode)  (destination register)  (PE register)                                           (systolic array ID)  (reserved)
-//        (0101)    (rrrr)                  (rrrr)                                                  (ii)                 (ii)
+//        (0101)    (rrrr)                  (rrrr)                                                  (ii)                 (xx)
 
 // LDG (load global reg) (will be just loaded with immediate)
-
-// STG (store global reg) (don't think need this)
+// LDG:   (opcode)  (destination register)  (immediate)
+//        (1000)    (rrrr)                  (iiiiiiii)

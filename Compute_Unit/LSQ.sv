@@ -17,7 +17,7 @@ module LSQ(
     output logic [3:0] dest_reg_out_q,
     output logic [ADDR_WIDTH-1:0] addr_out_q [7:0], 
     output logic instr_bit_out_q,
-    output logic done_bit_q
+    output logic done_bit_q,
 
     // to do: 
     input logic thread_mask_in_q,

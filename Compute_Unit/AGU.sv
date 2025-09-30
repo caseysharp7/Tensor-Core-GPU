@@ -8,7 +8,7 @@ module AGU (
     input logic [DATA_WIDTH-1:0] threadIdx [7:0], // come from threads reg file
     input logic [1:0] warp_num, // come from scheduler
     input logic [DATA_WIDTH-1:0] base_addr_reg, // come from global reg file
-    input logic [3:0] base_addr_imm, // from instruction
+    input logic [3:0] base_addr_imm, // from instruction (probably won't have this actually because those bits used for thread mask)
 
     output logic [ADDR_WIDTH-1:0] addr [7:0]
     );

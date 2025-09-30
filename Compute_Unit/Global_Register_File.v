@@ -7,7 +7,7 @@ module Global_Register_File(
     input glob_reg_write_en,  // will come from controller
     input [3:0] glob_reg_write_addr, // will come from instruction
 
-    input [DATA_WIDTH-1:0] glob_reg_write_data, // from where?
+    input [DATA_WIDTH-1:0] glob_reg_write_data, // from immediate in instruction
     
     input [3:0] glob_reg_read_addr, // will come from instruction
 
