@@ -1,5 +1,6 @@
 // Global Register File
-
+// do separate instruction memory + fetch and have separate pc stored in the scheduler and just keep it at pace with threads
+// only thing it'll need to do is hold load instructions to load immediate values into global registers
 `timescale 1ns / 1ps
 
 module Global_Register_File(

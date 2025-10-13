@@ -4,7 +4,10 @@
 
 module Warp_State#(parameter PC_WIDTH = 8)(
     input clk, reset,
-    output [PC_WIDTH-1:0] pc
+    input future_ready, // from Warp_Readiness_Check
+    input pc_update_en, // from scheduler, set if a warp is chosen
+    output [PC_WIDTH-1:0] pc,
+    output ready
     );
 
     reg [PC_WIDTH-1:0] pc_temp;
@@ -17,6 +20,7 @@ module Warp_State#(parameter PC_WIDTH = 8)(
             pc_temp <= pc;
     end
 
-    assign pc = pc_temp + 2;
+
+    assign pc = pc_update_en ? pc_temp+2 : pc;
 
 endmodule
