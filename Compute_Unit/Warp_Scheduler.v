@@ -11,6 +11,10 @@ module Warp_Scheduler#(parameter PC_WIDTH=8)(
     input [3:0] imm_short,
     input [1:0] array_id, // }
     input [1:0] warp_num_store, // come from decoder or instr fetch once future instruction in being loaded
+    input [1:0] warp_num_clear, // from LSU
+    input [3:0] threads_mask_clear, // from LSU
+    input done_bit, // from LSU
+
 
     output [PC_WIDTH-1:0] pc, // to instr fetch
     output [1:0] warp_num // to LSU + scoreboard, threads reg file
@@ -35,6 +39,7 @@ module Warp_Scheduler#(parameter PC_WIDTH=8)(
         end
     endgenerate
 
+    wire [3:0] imm_short [3:0];
     Instruction_Buffer instr_buff_inst(
         .clk(clk), .reset(reset)
         .buffer_write_en(buffer_write_en),
@@ -48,26 +53,26 @@ module Warp_Scheduler#(parameter PC_WIDTH=8)(
         .opcode_out(),
         .target_reg_out(),
         .address_reg_out(),
-        imm_short_out(),
+        .imm_short_out(imm_short), // will be used for threads masks but possibly other things for other instructions
         .array_id_out()
     );
 
     wire [3:0] ready_warps;
     Warp_Readiness_Check wrc_inst#(parameter NUM_THREADS = 32) (
         .busy_threads(busy_threads),
-        .warp_masks(),
+        .threads_masks(imm_short),
         .ready_warps(ready_warps)
     );
 
     wire [NUM_THREADS-1:0] busy_threads;
     Scoreboard scoreboard_inst(
         .clk(clk), .reset(reset),
-        .warp_num_busy(),
-        .warp_num_clear(),
+        .warp_num_busy(), // set once the next warp gets chosen
+        .warp_num_clear(warp_num_clear),
         .threads_mask_busy(),
-        .threads_mask_clear(),
+        .threads_mask_clear(threads_mask_clear),
         .busy_en(),
-        .done_bit(),
+        .done_bit(done_bit),
         .busy_threads(busy_threads)
     );
 

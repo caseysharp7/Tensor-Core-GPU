@@ -15,7 +15,7 @@ module Instruction_Buffer(
     output logic [3:0] opcode_out [3:0], // to scheduler {
     output logic [3:0] target_reg_out [3:0],
     output logic [3:0] address_reg_out [3:0],
-    output logic [3:0] imm_short_out [3:0],
+    output logic [3:0] imm_short_out [3:0], 
     output logic [1:0] array_id_out [3:0] // }
     );
 

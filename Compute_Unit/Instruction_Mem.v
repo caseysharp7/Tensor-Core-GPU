@@ -29,7 +29,7 @@ endmodule
 //        (0010)    (rrrr)                  (rrrr)              (iiii)
 
 // PUSH:  (opcode)  (source register)       (PE register (which PE a given thread should push to))  (systolic array ID)  (reserved)
-//        (0100)    (rrrr)                  (rrrr)                                                  (ii)                 (xx)
+//        (0100)    (rrrr)                  (rrr)                                                  (ii)                  (xxx)
 
 // PULL:  (opcode)  (destination register)  (PE register)                                           (systolic array ID)  (reserved)
 //        (0101)    (rrrr)                  (rrrr)                                                  (ii)                 (xx)

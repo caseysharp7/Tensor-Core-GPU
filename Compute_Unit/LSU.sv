@@ -12,6 +12,7 @@ module LSU (
     input logic [3:0] base_addr_imm, // from instruction
 
     input logic [3:0] dest_reg_addr_in, // from instruction
+    input logic [3:0] threads_mask, // from instruction
     input logic instr_bit_in, // from controller
     input logic queue_write_en, // from controller
 
@@ -21,8 +22,9 @@ module LSU (
     output logic [DATA_WIDTH-1:0] reg_write_data [7:0], // to threads reg file (from data memory most likely)
     output logic [DATA_WIDTH-1:0] mem_write_data [7:0], // to data memory (from threads reg file most likely)
     
+    output logic [3:0] threads_mask_out,
     output logic [3:0] reg_addr_out, // to threads reg file after done bit activated, for a load (with a write we will already have data from threads reg file) 
-    output logic [1:0] warp_num_out, // to scoreboard
+    output logic [1:0] warp_num_out, // to scoreboard 
     output logic done_bit_out, // to scoreboard
 
     output logic [ADDR_WIDTH-1:0] addr_out [7:0] // to data memory
@@ -51,12 +53,16 @@ module LSU (
         .addr_in_q(addr_temp),
         .instr_bit_in_q(instr_bit_in),
         .queue_write_en(queue_write_en),
+        .threads_mask_in_q(threads_mask),
+        .reg_data_in_q(),
 
         .warp_num_out_q(warp_num_out),
         .dest_reg_out_q(reg_addr_out),
         .addr_out_q(addr_out),
         .instr_bit_out_q(), // used internally? or to control
-        .done_bit_q(done_bit_out) 
+        .done_bit_q(done_bit_out),
+        .threads_mask_out_q(threads_mask_out),
+        .reg_data_out_q()
     );
 
 endmodule
