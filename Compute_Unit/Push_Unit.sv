@@ -9,6 +9,7 @@ module Push_Unit#(parameter DATA_WIDTH = 16)(
     input logic clk, reset,
     input logic pause, // from scheduler? if paused then whole systolic array must pause
     
+    input logic push_valid, // from scheduler
     input logic [DATA_WIDTH-1:0] load_data [7:0], // from threads reg file
 
     output logic [DATA_WIDTH-1:0] left_corner0,
@@ -21,12 +22,11 @@ module Push_Unit#(parameter DATA_WIDTH = 16)(
     output logic [DATA_WIDTH-1:0] top2,
     output logic [DATA_WIDTH-1:0] top3,
 
-    output logic left_corner_valid, // to corner PE
+    output logic corner_valid, // to corner PE
     output logic left1_valid, 
     output logic left2_valid,
     output logic left3_valid,
 
-    output logic top_corner_valid,
     output logic top1_valid,
     output logic top2_valid,
     output logic top3_valid,
@@ -36,25 +36,49 @@ module Push_Unit#(parameter DATA_WIDTH = 16)(
 
     logic [3:0] counter; // 11? total steps in the systolic array matrix processing
 
-    assign left_corner0 = load_data[0];
-    assign left1 = load_data[1];
-    assign left2 = load_data[2];
-    assign left3 = load_data[3];
-    assign top_corner0 = load_data[4];
-    assign top1 = load_data[5];
-    assign top2 = load_data[6];
-    assign top3 = load_data[7];
+    always_comb begin
+        if(push_valid) begin
+            left_corner0 = load_data[0];
+            left1 = load_data[1];
+            left2 = load_data[2];
+            left3 = load_data[3];
+            top_corner0 = load_data[4];
+            top1 = load_data[5];
+            top2 = load_data[6];
+            top3 = load_data[7];
+        end
+        else begin
+            left_corner0 = 0;
+            left1 = 0;
+            left2 = 0;
+            left3 = 0;
+            top_corner0 = 0;
+            top1 = 0;
+            top2 = 0;
+            top3 = 0;
+        end
+    end
 
     always_comb begin
-        left_corner_valid = (counter >= 0) && (counter < 4);
-        left1_valid = (counter >= 1) && (counter < 5);
-        left2_valid = (counter >= 2) && (counter < 6);
-        left3_valid = (counter >= 3) && (counter < 7);
+        if(pause) begin
+            corner_valid = 0;
+            left1_valid = 0;
+            left2_valid = 0;
+            left3_valid = 0;
+            top1_valid = 0;
+            top2_valid = 0;
+            top3_valid = 0;
+        end
+        else begin
+            corner_valid = (counter >= 0) && (counter < 4);
+            left1_valid = (counter >= 1) && (counter < 5);
+            left2_valid = (counter >= 2) && (counter < 6);
+            left3_valid = (counter >= 3) && (counter < 7);
 
-        top_corner_valid = (counter >= 0) && (counter < 4);
-        top1_valid = (counter >= 1) && (counter < 5);
-        top2_valid = (counter >= 2) && (counter < 6);
-        top3_valid = (counter >= 3) && (counter < 7);
+            top1_valid = (counter >= 1) && (counter < 5);
+            top2_valid = (counter >= 2) && (counter < 6);
+            top3_valid = (counter >= 3) && (counter < 7);
+        end
     end
 
     always_ff@(posedge clk or posedge reset) begin

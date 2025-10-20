@@ -1,23 +1,19 @@
-// Processing Element Edge
+// Processing Element Center
 
 `timescale 1ns / 1ps
 
-module PE_Edge#(parameter DATA_WIDTH = 16)(
+module PE_Center#(parameter DATA_WIDTH = 16)(
     input clk, reset, pause,
-    input [DATA_WIDTH-1:0] left_in,
-    input [DATA_WIDTH-1:0] top_in,
-    input valid_bit,
-
-    output [DATA_WIDTH-1:0] right_out,
-    output [DATA_WIDTH-1:0] bottom_out,
+    input [DATA_WIDTH-1:0] left_in, top_in,
+    output [DATA_WIDTH-1:0] right_out, bottom_out,
     output [DATA_WIDTH-1:0] result
     );
 
     wire [DATA_WIDTH-1:0] in, out, prod;
     reg [DATA_WIDTH-1:0] right, bottom;
 
-    always@(*) begin
-        if(valid_bit)
+    always @(*) begin
+        if(!pause)
             prod = left_in*top_in;
         else
             prod = 16'd0;
