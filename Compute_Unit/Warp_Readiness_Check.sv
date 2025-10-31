@@ -18,7 +18,7 @@ module Warp_Readiness_Check#(parameter NUM_THREADS = 32) (
 
     genvar i;
     for(i = 0; i < 4; i++) begin
-        assign warps[i] = busy_threads[(NUM_THREADS-1 - 8*i) -: 8];
+        assign warps[i] = busy_threads[(8*(i+1)) - 1 -: 8];
     end
 
     logic [7:0] masks [3:0];
@@ -34,7 +34,7 @@ module Warp_Readiness_Check#(parameter NUM_THREADS = 32) (
     integer j;
     always_comb begin
         for(j = 0; j < 4; j = j+1) begin
-            ready_warps[j] = ~(|(warps[j] & masks[j]));;
+            ready_warps[j] = ~(|(warps[j] & masks[j]));
         end
     end
 

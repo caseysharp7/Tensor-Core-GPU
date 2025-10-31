@@ -25,21 +25,25 @@ module Warp_Scheduler#(parameter PC_WIDTH=8)(
 
     wire [1:0] select_warp;
     wire [PC_WIDTH-1:0] pc_array [3:0];
+    reg push_active; // tells if the processor is currently pushing the systolic array
 
+    wire [3:0] ready_warps_current;
     genvar i;
     generate  // create 4 warp states to hold metadata for the 4 warps
         for(i = 0; i < 4; i = i+1) begin : loop1
             Warp_State warp_inst(
                 .clk(clk),
                 .reset(reset),
-                .future_ready(ready_warps[i])
+                .future_ready(ready_warps_next[i]),
 
-                .pc(pc_array[i])
+                .pc(pc_array[i]),
+                .ready_out(ready_warps_current[i])
             );
         end
     endgenerate
 
     wire [3:0] imm_short [3:0];
+    wire [3:0] opcode;
     Instruction_Buffer instr_buff_inst(
         .clk(clk), .reset(reset)
         .buffer_write_en(buffer_write_en),
@@ -50,18 +54,18 @@ module Warp_Scheduler#(parameter PC_WIDTH=8)(
         .array_id_in(array_id),
         .warp_num_store(warp_num_store),
 
-        .opcode_out(),
+        .opcode_out(opcode),
         .target_reg_out(),
         .address_reg_out(),
         .imm_short_out(imm_short), // will be used for threads masks but possibly other things for other instructions
         .array_id_out()
     );
 
-    wire [3:0] ready_warps;
+    wire [3:0] ready_warps_next; // readiness for next cycle
     Warp_Readiness_Check wrc_inst#(parameter NUM_THREADS = 32) (
         .busy_threads(busy_threads),
         .threads_masks(imm_short),
-        .ready_warps(ready_warps)
+        .ready_warps(ready_warps_next)
     );
 
     wire [NUM_THREADS-1:0] busy_threads;
@@ -74,6 +78,12 @@ module Warp_Scheduler#(parameter PC_WIDTH=8)(
         .busy_en(),
         .done_bit(done_bit),
         .busy_threads(busy_threads)
+    );
+
+    Controller(
+        .reset(reset),
+        .opcode(opcode),
+        .instr_bit_in
     );
 
 

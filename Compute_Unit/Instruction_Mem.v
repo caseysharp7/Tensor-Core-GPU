@@ -28,12 +28,23 @@ endmodule
 // ST:    (opcode)  (source register)       (address register)  (immediate)
 //        (0010)    (rrrr)                  (rrrr)              (iiii)
 
+// LDG (load global reg) (will be just loaded with immediate)
+// LDG:   (opcode)  (destination register)  (immediate)
+//        (1000)    (rrrr)                  (iiiiiiii)
+
+
+
+
+
+
+
+
+
+
+
+
 // PUSH:  (opcode)  (source register)       (PE register (which PE a given thread should push to))  (systolic array ID)  (reserved)
 //        (0100)    (rrrr)                  (rrr)                                                  (ii)                  (xxx)
 
 // PULL:  (opcode)  (destination register)  (PE register)                                           (systolic array ID)  (reserved)
 //        (0101)    (rrrr)                  (rrrr)                                                  (ii)                 (xx)
-
-// LDG (load global reg) (will be just loaded with immediate)
-// LDG:   (opcode)  (destination register)  (immediate)
-//        (1000)    (rrrr)                  (iiiiiiii)
