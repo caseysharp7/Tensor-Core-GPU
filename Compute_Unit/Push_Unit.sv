@@ -8,6 +8,7 @@
 module Push_Unit#(parameter DATA_WIDTH = 16)(
     input logic clk, reset,
     input logic pause, // from scheduler? if paused then whole systolic array must pause
+    input logic start_push, // from scheduler (control) when new push starts
     
     // input logic push_valid, // from scheduler
     input logic [DATA_WIDTH-1:0] load_data [7:0], // from threads reg file
@@ -37,7 +38,7 @@ module Push_Unit#(parameter DATA_WIDTH = 16)(
     logic [3:0] counter; // 11? total steps in the systolic array matrix processing
     logic push_valid;
 
-    assign push_valid = (counter < 7);
+    assign push_valid = (counter < 7 && !pause);
 
     always_comb begin
         if(push_valid) begin
@@ -85,7 +86,7 @@ module Push_Unit#(parameter DATA_WIDTH = 16)(
     end
 
     always_ff@(posedge clk or posedge reset) begin
-        if(reset) begin
+        if(reset || start_push) begin
             counter <= 0;
         end
         else if(counter < 10 && !pause) begin

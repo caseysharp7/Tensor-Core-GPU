@@ -2,9 +2,12 @@
 
 `timescale 1ns / 1ps
 
-module LSU (
+module LSU#(parameter DATA_WIDTH = 16, parameter ADDR_WIDTH = 8)(
     input logic clk,
     input logic reset, 
+
+    input logic matmul_done,
+    input logic start_pull,
 
     input logic [DATA_WIDTH-1:0] threadIdx [7:0], // come from threads reg file
     input logic [1:0] warp_num, // come from scheduler
@@ -19,7 +22,9 @@ module LSU (
     input logic [DATA_WIDTH-1:0] reg_read_data [7:0], // will come from threads reg file
     input logic [DATA_WIDTH-1:0] mem_read_data [7:0], // from data memory 
 
-    output logic [DATA_WIDTH-1:0] reg_write_data [7:0], // to threads reg file (from data memory most likely)
+    input logic [DATA_WIDTH-1:0] reg_push_data [7:0], // from pull unit
+
+    output logic [DATA_WIDTH-1:0] reg_write_data [7:0], // to threads reg file (from data memory most likely and pull unit)
     output logic [DATA_WIDTH-1:0] mem_write_data [7:0], // to data memory (from threads reg file most likely)
     
     output logic [3:0] threads_mask_out,
@@ -30,12 +35,13 @@ module LSU (
     output logic [ADDR_WIDTH-1:0] addr_out [7:0] // to data memory
     );
 
-    parameter DATA_WIDTH = 16;
-    parameter ADDR_WIDTH = 8;
-
-    logic addr_temp;
+    logic [ADDR_WIDTH-1:0] addr_temp [8];
     
     // need to implement logic to check if all the proper addresses were read when loading the data to the threads reg file from data memory (I think we can actually solve this using software instead)
+
+    if(matmul_done && start_pull) begin
+        reg_write_data = reg_push_data;
+    end
 
     AGU agu( // acceptable for loads and stores currently as we'll load from and store to contiguous memory
         .reset(reset),
@@ -49,12 +55,12 @@ module LSU (
     LSQ lsq(
         .clk(clk), .reset(reset), 
         .warp_num_in_q(warp_num),
-        .dest_reg_in_q(dest_reg_addr),
+        .dest_reg_in_q(dest_reg_addr_in),
         .addr_in_q(addr_temp),
         .instr_bit_in_q(instr_bit_in),
         .queue_write_en(queue_write_en),
         .threads_mask_in_q(threads_mask),
-        .reg_data_in_q(),
+        .reg_data_in_q(reg_read_data),
 
         .warp_num_out_q(warp_num_out),
         .dest_reg_out_q(reg_addr_out),

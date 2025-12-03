@@ -1,20 +1,18 @@
 // Scoreboard
 
-module Scoreboard(
+module Scoreboard#(parameter DATA_WIDTH = 16,
+                   parameter NUM_THREADS = 32)(
     input clk, reset,
     input [1:0] warp_num_busy, // from scheduler for new entry (set bits to 1 to indicate that thread is now busy)
     input [1:0] warp_num_clear, // from LSU for completed instruction (set bits back to 0 to indicate thread is not busy)
     input [3:0] threads_mask_busy, // from scheduler
     input [3:0] threads_mask_clear, // from LSU
-    input busy_en, // from scheduler
-    input done_bit, // from LSU
+    input busy_en, // from controller, only marked busy if the instruction is LD or ST (dram operation)
+    input done_bit, // from 
 
     output [NUM_THREADS-1:0] busy_threads // to scheduler
     );
     // can just load and unload sequentially as memory instructions won't go out of order
-
-    parameter DATA_WIDTH = 16;
-    parameter NUM_THREADS = 32;
 
     // busy threads:
     // an on bit indicates the thread is busy

@@ -13,8 +13,8 @@ module PE_Edge#(parameter DATA_WIDTH = 16)(
     output [DATA_WIDTH-1:0] result
     );
 
-    wire [DATA_WIDTH-1:0] in, out, prod;
-    reg [DATA_WIDTH-1:0] right, bottom;
+    wire [DATA_WIDTH-1:0] in, out, right, bottom;
+    reg [DATA_WIDTH-1:0] prod;
 
     always@(*) begin
         if(valid_bit)
@@ -25,15 +25,15 @@ module PE_Edge#(parameter DATA_WIDTH = 16)(
 
     assign out = in + prod;
 
-    PE_Reg register#(REG_WIDTH = DATA_WIDTH)(
+    PE_Reg#(.REG_WIDTH(DATA_WIDTH)) register(
         .clk(clk), .reset(reset), .d(out), .q(in)
     );
 
-    PE_Reg_In register_in_left#(REG_WIDTH = DATA_WIDTH)(
+    PE_Reg_In#(.REG_WIDTH(DATA_WIDTH)) register_in_left(
         .clk(clk), .reset(reset), .pause(pause),
         .d(left_in), .q(right)
     );
-    PE_Reg_In register_in_top#(REG_WIDTH = DATA_WIDTH)(
+    PE_Reg_In#(.REG_WIDTH(DATA_WIDTH)) register_in_top(
         .clk(clk), .reset(reset), .pause(pause),
         .d(top_in), .q(bottom)
     );

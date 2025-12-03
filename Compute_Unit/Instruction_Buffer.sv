@@ -12,6 +12,7 @@ module Instruction_Buffer(
     input logic [3:0] imm_short_in,
     input logic [1:0] array_id_in, // }
     input logic [1:0] warp_num_store, // come from decoder or instr fetch once future instruction in being loaded
+    
     output logic [3:0] opcode_out [3:0], // to scheduler {
     output logic [3:0] target_reg_out [3:0],
     output logic [3:0] address_reg_out [3:0],
@@ -28,7 +29,7 @@ module Instruction_Buffer(
     always_ff @(posedge clk) begin
         if(reset) begin
             for(i = 0; i < NUM_WARPS; i = i+1) begin
-                buffer[i] <= {BUFFER_WIDTH{0}};
+                buffer[i] <= {BUFFER_WIDTH{1'b0}};
             end
         end
         else if(buffer_write_en) begin

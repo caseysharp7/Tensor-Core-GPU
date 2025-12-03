@@ -2,7 +2,7 @@
 
 module Threads_Mask_Decoder(
     input [3:0] threads_mask,
-    output [7:0] active_threads
+    output reg [7:0] active_threads
     );
     // just use threads_mask[1] if 2 is not active
     always @(*) begin
@@ -13,6 +13,7 @@ module Threads_Mask_Decoder(
                     2'b01: active_threads = 8'b0000_1100; // 1101
                     2'b10: active_threads = 8'b0011_0000; // 1110
                     2'b11: active_threads = 8'b1100_0000; // 1111
+                    default: active_threads = 8'd0;
                 endcase
             end
             else begin
@@ -28,4 +29,3 @@ module Threads_Mask_Decoder(
     end
 
 endmodule
-

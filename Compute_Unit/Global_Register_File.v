@@ -3,7 +3,7 @@
 // only thing it'll need to do is hold load instructions to load immediate values into global registers
 `timescale 1ns / 1ps
 
-module Global_Register_File(
+module Global_Register_File#(parameter DATA_WIDTH = 16)(
     input clk, reset,
     input glob_reg_write_en,  // will come from controller
     input [3:0] glob_reg_write_addr, // will come from instruction
@@ -14,8 +14,6 @@ module Global_Register_File(
 
     output [DATA_WIDTH-1:0] glob_reg_read_data
     );
-
-    parameter DATA_WIDTH = 16;
 
     reg [DATA_WIDTH-1:0] reg_file [15:0]; // 16 helper registers
 

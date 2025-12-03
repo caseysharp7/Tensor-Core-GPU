@@ -1,14 +1,18 @@
 // Instruction Memory
 
+// memory after certain point will be reserved for global instructions
+
 `timescale 1ns / 1ps
 
-module Instruction_Mem(
+module Instruction_Mem#(
+    parameter PC_WIDTH = 8,
+    parameter INST_WIDTH = 16
+)(
     input [PC_WIDTH-1:0] read_addr,
-    output [INST_WIDTH-1:0] instruction
+    input [PC_WIDTH-1:0] read_global_addr,
+    output [INST_WIDTH-1:0] instruction,
+    output [INST_WIDTH-1:0] global_instruction
     );
-    
-    parameter PC_WIDTH = 8;
-    parameter INST_WIDTH = 16;
 
     reg [INST_WIDTH-1:0] rom [127:0];  
     
@@ -19,6 +23,7 @@ module Instruction_Mem(
     end
 
     assign instruction = rom[read_addr[7:1]]; 
+    assign global_instruction = rom[read_global_addr[7:1]];
 endmodule
 
 // ISA: 

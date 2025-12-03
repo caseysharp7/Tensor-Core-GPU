@@ -4,14 +4,15 @@
 // get the data from the reg for a store or the data from the data mem for a load and simply keep it here
 // for some clock cycles and then release it to the rest of the processor
 
-module LSQ( 
+module LSQ#(parameter DATA_WIDTH = 16,
+            parameter ADDR_WIDTH = 8)( 
     input logic clk, reset,
     input logic [1:0] warp_num_in_q, // from scheduler 
     input logic [3:0] dest_reg_in_q, // from instruction, this will be a write reg to the threads reg file
     input logic [ADDR_WIDTH-1:0] addr_in_q [7:0],  
     input logic instr_bit_in_q, // from controller (tells if its a load (0) or store(1))
     input logic [3:0] threads_mask_in_q, // from instruction
-    input logic [DATA_WIDTH-1:0] reg_data_in_q, // from threads register file
+    input logic [DATA_WIDTH-1:0] reg_data_in_q [7:0], // from threads register file
 
     input logic queue_write_en, // from controller
 
@@ -21,11 +22,9 @@ module LSQ(
     output logic instr_bit_out_q,
     output logic done_bit_q,
     output logic [3:0] threads_mask_out_q,
-    output logic [DATA_WIDTH-1:0] reg_data_out_q
+    output logic [DATA_WIDTH-1:0] reg_data_out_q [7:0]
     ); 
 
-    parameter DATA_WIDTH = 16;
-    parameter ADDR_WIDTH = 8;
     parameter QUEUE_SIZE = 32;
 
     logic [$clog2(QUEUE_SIZE)-1:0] write_ptr;
@@ -36,7 +35,7 @@ module LSQ(
 
     // counter to simulate the time it takes to access memory
     // first 3 bits will act as the counter
-    typedef struct packed{
+    typedef struct{
         logic [2:0] counter;
         logic instr_bit;
         logic [1:0] warp_num;
@@ -44,7 +43,7 @@ module LSQ(
         logic [ADDR_WIDTH-1:0] addr [7:0];
         logic valid_bit;
         logic [3:0] threads_mask;
-        logic [DATA_WIDTH-1:0] reg_data;
+        logic [DATA_WIDTH-1:0] reg_data [7:0];
     } queue_input;
 
     queue_input queue [QUEUE_SIZE-1:0];
@@ -60,7 +59,7 @@ module LSQ(
                 queue[i].addr <= '{default:'0};
                 queue[i].valid_bit <= 1'b0;
                 queue[i].threads_mask <= 4'd0;
-                queue[i].reg_data <= 16'd0;
+                queue[i].reg_data <= '{default:'0};
             end
         end else begin
             for(i = 0; i < QUEUE_SIZE; i=i+1) begin
@@ -82,7 +81,7 @@ module LSQ(
             queue[write_ptr].dest_reg <= dest_reg_in_q;
             queue[write_ptr].addr <= addr_in_q;
             queue[write_ptr].valid_bit <= 1'b1;
-            queue[write_ptr].threads_masks <= threads_mask_in_q;
+            queue[write_ptr].threads_mask <= threads_mask_in_q;
             queue[write_ptr].reg_data <= reg_data_in_q;
             write_ptr <= write_ptr + 1;
         end
