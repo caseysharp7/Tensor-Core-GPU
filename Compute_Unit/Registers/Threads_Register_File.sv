@@ -31,7 +31,7 @@ module Threads_Register_File#(parameter DATA_WIDTH = 16,
 
     logic [DATA_WIDTH-1:0] reg_file [NUM_THREADS-1:0][15:0]; // 16 registers per thread
 
-    // last three registers of each thread will be read only and contain their threadIdx, blockIdx, and blockDim (inspiration from tiny gpu)
+    // last three registers of each thread will be read only and contain their threadIdx, blockIdx, and blockDim
 
     integer i, j;
     initial begin
