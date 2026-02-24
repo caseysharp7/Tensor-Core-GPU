@@ -2,36 +2,45 @@
 
 `timescale 1ns / 1ps
 
-module Shared_Memory_Arbiter(
-    input logic clk,
-    input logic [NUM_BANKS-1:0] banks,
+module Shared_Memory_Arbiter#(parameter NUM_BANKS = 8, NUM_THREADS = 8)(
+    input logic clk, reset,
+    input logic [NUM_THREADS-1:0] active_threads,
+    input logic [2:0] thread_banks [NUM_BANKS-1:0],
 
-    output logic [NUM_BANKS-1:0] enable
+    output logic [NUM_BANKS-1:0] threads_en, // per thread enable, not per bank
+    output logic warp_stall
     );
 
-    logic [NUM_BANKS-1:0] mask;
-    logic [NUM_BANKS-1:0] conflicts;
+    logic [NUM_BANKS-1:0] threads_mask;
+    logic [NUM_BANKS-1:0] banks_busy;
+    logic [NUM_THREADS-1:0] remaining_threads;
+
+
+    assign remaining_threads = active_threads & ~threads_mask;
 
     always_comb begin
+        threads_en = '0;
+        banks_busy = '0;
+
         for(int i = 0; i < NUM_BANKS; i = i+1) begin
-            for (int j = i + 1; j < NUM_BANKS; j++) begin
-                if (banks[i] == banks[j] && mask[i] != 1'b1 && mask[j] != 1'b1) begin
-                    conflicts[j] = 1'b1; 
+            if(remaining_threads[i]) begin
+                if(!banks_busy[thread_banks[i]]) begin
+                    threads_en[i] = 1'b1;
+                    banks_busy[thread_banks[i]] = 1'b1;
                 end
             end
         end
-    end
 
-    always_comb begin
-        for(int i = 0; i < NUM_BANKS; i = i+1) begin
-            enable[i] = !(conflicts & banks);
-        end
+        warp_stall = (remaining_threads & ~threads_en) != 0;
     end
 
     always_ff@(posedge clk) begin
-        mask <= mask | enable;
+        if(reset || !warp_stall) begin
+            threads_mask <= 8'b0;
+        end
+        else begin
+            threads_mask <= threads_mask | threads_en;
+        end
     end
-
-
 
 endmodule

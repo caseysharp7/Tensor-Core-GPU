@@ -3,49 +3,53 @@
 
 `timescale 1ps / 1ps
 
-module Shared_Memory#(parameter NUM_BANKS = 8, ADDRESS_WIDTH = 8, DATA_WIDTH = 16)(
-    input logic clk,
+module Shared_Memory#(parameter NUM_BANKS = 8, ADDRESS_WIDTH = 8, DATA_WIDTH = 16, NUM_THREADS = 8)(
+    input logic clk, reset,
     input logic write_en,
-    input logic [ADDRESS_WIDTH-1:0] addr [7:0],
-    input logic [DATA_WIDTH-1:0] write_data [7:0],
+    input logic [NUM_THREADS-1:0] active_threads,
+    input logic [ADDRESS_WIDTH-1:0] threads_addr [NUM_THREADS-1:0],
+    input logic [DATA_WIDTH-1:0] threads_write_data [NUM_THREADS-1:0],
     
-    output logic [DATA_WIDTH-1:0] read_data [7:0],
-    output logic bank_conflict
+    output logic [DATA_WIDTH-1:0] threads_read_data [NUM_THREADS-1:0], 
+    output logic warp_stall
     );
-    // Implement detection logic for if multiple threads request data from same bank then serialize the request
 
-    logic [2:0] banks [NUM_BANKS-1:0];
-    logic [DATA_WIDTH-1:0] write_data_int [NUM_BANKS-1:0];
-    logic [ADDRESS_WIDTH-4:0] addr_int [NUM_BANKS-1:0];
-    logic write_active;
+    logic [2:0] thread_banks [NUM_BANKS-1:0];
+    logic [NUM_BANKS-1:0] threads_en;
 
-    assign write_active = (write_en) ? 1'b1 : 1'b0;
+    logic [NUM_BANKS-1:0] banks_en;
+    logic [DATA_WIDTH-1:0] banks_write_data [NUM_BANKS-1:0];
+    logic [ADDRESS_WIDTH-4:0] banks_addr [NUM_BANKS-1:0];
+    logic [DATA_WIDTH-1:0] banks_read_data [NUM_BANKS-1:0];
+
+    logic [2:0] banks_selection_prev [NUM_THREADS-1:0];
+
 
     always_comb begin
-        for(integer i = 0; i < NUM_BANKS; i = i+1) begin
-            banks[i] = addr[i][2:0];
+        for(int i = 0; i < NUM_BANKS; i = i+1) begin
+            thread_banks[i] = threads_addr[i][2:0];
         end
     end
 
     Shared_Memory_Arbiter shared_mem_arb(
         .clk(clk),
-
+        .reset(reset),
+        .active_threads(active_threads),
+        .thread_banks(thread_banks),
+        .threads_en(threads_en),
+        .warp_stall(warp_stall)
     );
 
     always_comb begin
-        for(integer i = 0; i < NUM_BANKS; i = i+1) begin
-            write_data_int[banks[i]] = write_data[i];
-            addr_int[banks[i]] = addr[i][ADDRESS_WIDTH-1:3];
-        end
-    end
-    
-    always_comb begin
-        bank_conflict = 1'b0;
-        for (int i = 0; i < NUM_BANKS; i++) begin
-            for (int j = i + 1; j < NUM_BANKS; j++) begin
-                if (banks[i] == banks[j]) begin
-                    bank_conflict = 1'b1; 
-                end
+        banks_write_data = '{default: '0};
+        banks_addr = '{default: '0};
+        banks_en = '0;
+        
+        for(int i = 0; i < NUM_BANKS; i = i+1) begin
+            if(threads_en[i]) begin
+                banks_write_data[thread_banks[i]] = threads_write_data[i];
+                banks_addr[thread_banks[i]] = threads_addr[i][ADDRESS_WIDTH-1:3];
+                banks_en[thread_banks[i]] = 1'b1;
             end
         end
     end
@@ -55,19 +59,31 @@ module Shared_Memory#(parameter NUM_BANKS = 8, ADDRESS_WIDTH = 8, DATA_WIDTH = 1
         for(i = 0; i < NUM_BANKS; i = i+1) begin : loop
             Shared_Memory_Subunit shared_mem_sub(
                 .clk(clk),
-                .write_en(write_active),
-                .addr(addr_int[i]),
-                .write_data(write_data_int[i]),
-                .read_data(read_data[i])
+                .write_en(write_en),
+                .bank_en(banks_en[i]),
+                .addr(banks_addr[i]),
+                .write_data(banks_write_data[i]),
+                .read_data(banks_read_data[i])
             );
         end
     endgenerate
+    
+    always_ff @(posedge clk) begin
+        if (reset) begin
+            banks_selection_prev <= '{default: '0};
+        end 
+        else begin
+            for (int i = 0; i < NUM_THREADS; i = i+1) begin
+                if (threads_en[i]) begin
+                    banks_selection_prev[i] <= thread_banks[i];
+                end
+            end
+        end
+    end
 
-    // Need to implement some sort of buffer system that serializes the reads or write of the threads
-
-
-
-
-
-
+    always_comb begin
+        for (int i = 0; i < NUM_THREADS; i = i+1) begin
+            threads_read_data[i] = banks_read_data[banks_selection_prev[i]];
+        end
+    end
 endmodule
