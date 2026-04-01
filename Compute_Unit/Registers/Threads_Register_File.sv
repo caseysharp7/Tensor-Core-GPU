@@ -1,4 +1,5 @@
 // Threads Register File
+// 8KB
 
 `timescale 1ns / 1ps
 

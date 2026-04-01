@@ -1,5 +1,6 @@
 // Shared Memory Scratchpad
 // User controlled memory space
+// 4KB
 
 `timescale 1ps / 1ps
 

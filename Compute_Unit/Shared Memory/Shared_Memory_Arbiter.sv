@@ -13,7 +13,7 @@ module Shared_Memory_Arbiter#(parameter NUM_BANKS = 8, NUM_THREADS = 8)(
 
     logic [NUM_BANKS-1:0] threads_mask;
     logic [NUM_BANKS-1:0] banks_busy;
-    logic [NUM_THREADS-1:0] remaining_threads;
+    logic [NUM_BANKS-1:0] remaining_threads;
 
 
     assign remaining_threads = active_threads & ~threads_mask;
