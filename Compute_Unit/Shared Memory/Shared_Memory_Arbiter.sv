@@ -8,12 +8,13 @@ module Shared_Memory_Arbiter#(parameter NUM_BANKS = 8, NUM_THREADS = 8)(
     input logic [2:0] thread_banks [NUM_BANKS-1:0],
 
     output logic [NUM_BANKS-1:0] threads_en, // per thread enable, not per bank
-    output logic warp_stall
+    output logic warp_stall,
+    output logic shared_mem_ready
     );
 
     logic [NUM_BANKS-1:0] threads_mask;
     logic [NUM_BANKS-1:0] banks_busy;
-    logic [NUM_THREADS-1:0] remaining_threads;
+    logic [NUM_BANKS-1:0] remaining_threads;
 
 
     assign remaining_threads = active_threads & ~threads_mask;
@@ -37,6 +38,7 @@ module Shared_Memory_Arbiter#(parameter NUM_BANKS = 8, NUM_THREADS = 8)(
     always_ff@(posedge clk) begin
         if(reset || !warp_stall) begin
             threads_mask <= 8'b0;
+            shared_mem_ready <= 1'b1;
         end
         else begin
             threads_mask <= threads_mask | threads_en;
