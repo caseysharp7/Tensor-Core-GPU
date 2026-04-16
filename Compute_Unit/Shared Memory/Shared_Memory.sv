@@ -12,7 +12,8 @@ module Shared_Memory#(parameter NUM_BANKS = 8, ADDRESS_WIDTH = 8, DATA_WIDTH = 1
     input logic [DATA_WIDTH-1:0] threads_write_data [NUM_THREADS-1:0],
     
     output logic [DATA_WIDTH-1:0] threads_read_data [NUM_THREADS-1:0], 
-    output logic warp_stall
+    output logic warp_stall,
+    output logic shared_mem_ready
     );
 
     logic [2:0] thread_banks [NUM_BANKS-1:0];
@@ -37,8 +38,10 @@ module Shared_Memory#(parameter NUM_BANKS = 8, ADDRESS_WIDTH = 8, DATA_WIDTH = 1
         .reset(reset),
         .active_threads(active_threads),
         .thread_banks(thread_banks),
+        
         .threads_en(threads_en),
-        .warp_stall(warp_stall)
+        .warp_stall(warp_stall),
+        .shared_mem_ready(shared_mem_ready)
     );
 
     always_comb begin

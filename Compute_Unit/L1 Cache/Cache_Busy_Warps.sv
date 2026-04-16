@@ -16,7 +16,7 @@ module Cache_Busy_Warps#(parameter ADDR_WIDTH = 32, DATA_WIDTH = 16, BLOCK_SIZE 
     input logic [DATA_WIDTH-1:0] data_in [BLOCK_SIZE-1:0],
     input logic [1:0] warp_num_in,
     input logic instr_type_in, // load or store 0 for load, 1 for store
-    input logic [7:0] threads_in // which threads accessed main memory
+    input logic [7:0] threads_in // which threads access main memory
 
 
     );
@@ -69,7 +69,7 @@ module Cache_Busy_Warps#(parameter ADDR_WIDTH = 32, DATA_WIDTH = 16, BLOCK_SIZE 
     logic [1:0] next_warp_state [3:0];
 
     always_ff @(posedge clk) begin
-        for (int i = 0; i < 4; i++) begin
+        for(int i = 0; i < 4; i++) begin
             if (reset) begin
                 warp_state[i] <= IDLE;
             end

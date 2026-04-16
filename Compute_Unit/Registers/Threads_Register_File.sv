@@ -3,8 +3,6 @@
 
 `timescale 1ns / 1ps
 
-// This needs to be changed. When a store comes in immediately take the register data and put in in the LSU
-// so that data is already in flight 
 // The reg read addr will come from the instruction buffer so it can process pushes/pulls and loads/stores
 
 module Threads_Register_File#(parameter DATA_WIDTH = 16,

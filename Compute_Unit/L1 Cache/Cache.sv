@@ -10,7 +10,7 @@ module Cache#(parameter ADDR_WIDTH = 32, DATA_WIDTH = 16, BLOCK_SIZE = 8, NUM_BL
     input logic [DATA_WIDTH-1:0] reg_data_in [BLOCK_SIZE-1:0], // data from the threadsregister file
     input logic [DATA_WIDTH-1:0] mem_data_in [BLOCK_SIZE-1:0], // data from main memory
     input logic [BLOCK_SIZE-1:0] active_threads, // we only worry about the threads that are active
-    input logic cache_req, // from instruction, tells if this is a memory instruction or not
+    input logic cache_req, // from control, tells if this is a memory instruction or not
 
     output logic [DATA_WIDTH-1:0] data_out [BLOCK_SIZE-1:0],
     output logic mem_read_req,

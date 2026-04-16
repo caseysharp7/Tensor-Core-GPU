@@ -1,7 +1,7 @@
 // Load Store Unit
 
 `timescale 1ns / 1ps
-
+// I think we can just have this work entirely through the L1 cache, have all memory transfer through the L1 cache
 module LSU#(parameter DATA_WIDTH = 16, parameter ADDR_WIDTH = 8)(
     input logic clk,
     input logic reset, 
