@@ -12,8 +12,8 @@ module FIFO_Buffer#(parameter DEPTH = 4, DATA_WIDTH = 16, NUM_THREADS = 8)(
 
     );
 
-    reg [$clog2(DEPTH)-1:0] wptr;
-    reg [$clog2(DEPTH)-1:0] rptr;
+    reg [$clog2(DEPTH):0] wptr;
+    reg [$clog2(DEPTH):0] rptr;
 
     reg [DATA_WIDTH-1:0] fifo [DEPTH-1:0][NUM_THREADS-1:0];
 

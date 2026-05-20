@@ -15,15 +15,18 @@ module Warp_State#(parameter PC_WIDTH = 8)(
 
     always@(posedge clk or posedge reset) begin
         if(reset) begin
-            pc_temp <= 8'd0;
+            pc_temp <= {PC_WIDTH{1'b0}};
             ready <= 1'b0;
         end
-        else
-            pc_temp <= pc;
+        else begin
+            if(pc_update_en) begin
+                pc_temp <= pc_temp + 8'd2;
+            end
             ready <= future_ready;
+        end
     end
 
-    assign pc = pc_update_en ? pc_temp+2 : pc;
+    assign pc = pc_temp;
     assign ready_out = ready;
 
 endmodule

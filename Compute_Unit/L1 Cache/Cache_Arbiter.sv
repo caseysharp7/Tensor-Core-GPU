@@ -1,29 +1,38 @@
 // L1 cache Arbiter/Coalescer
 
-module Cache_Arbiter#(parameter BLOCK_SIZE = 8, IDX_SIZE = 4)(
+module Cache_Arbiter#(parameter NUM_BLOCKS = 128, BLOCK_SIZE = 8, IDX_SIZE = $clog2(NUM_BLOCKS))(
     input logic clk, reset,
     input logic seq_active,
-    input logic [BLOCK_SIZE-1:0] active_threads,
+    input logic [NUM_THREADS-1:0] active_threads,
     input logic [IDX_SIZE-1:0] idx [BLOCK_SIZE-1:0],
 
+    input logic wb_seq_active,
+    input logic wb_init_mask_valid,
+    input logic [NUM_THREADS-1:0] wb_init_mask,
 
-    output logic [BLOCK_SIZE-1:0] threads_en,
+    input logic alloc_seq_active,
+    input logic alloc_init_mask_valid,
+    input logic [NUM_THREADS-1:0] alloc_init_mask,
+
+    input logic write_mem_valid, read_mem_valid,
+
+    output logic [NUM_THREADS-1:0] threads_en,
+    output logic [$clog2(NUM_BLOCKS)-1:0] cache_line, // which cache line is selected 
     output logic seq_over
     );
 
-    logic [BLOCK_SIZE-1:0] threads_mask;
-    logic [BLOCK_SIZE-1:0] remaining_threads;
-    logic [$clog2(BLOCK_SIZE)-1:0] selected_thread;
+    logic [NUM_THREADS-1:0] threads_mask;
+    logic [NUM_THREADS-1:0] remaining_threads;
+    logic [$clog2(NUM_THREADS)-1:0] selected_thread;
 
     assign remaining_threads = active_threads & ~threads_mask;
     
     logic [7:0] first_bit_one_hot;
 
-    // This isolates the first available thread into a "one-hot" signal
-    // e.g., 8'b10110000 becomes 8'b00010000
+    // 8'b10110000 becomes 8'b00010000
     assign first_bit_one_hot = remaining_threads & (~remaining_threads + 1);
 
-    // Now, we just encode that one-hot bit into a 3-bit binary number
+    // encode 1 bit into a 3 bit binary number
     always_comb begin
         selected_thread = 3'd0;
         if (first_bit_one_hot[1] || first_bit_one_hot[3] || first_bit_one_hot[5] || first_bit_one_hot[7]) begin
@@ -35,6 +44,8 @@ module Cache_Arbiter#(parameter BLOCK_SIZE = 8, IDX_SIZE = 4)(
         if (first_bit_one_hot[4] || first_bit_one_hot[5] || first_bit_one_hot[6] || first_bit_one_hot[7]) begin
             selected_thread[2] = 1;
         end
+
+        cache_line = idx[selected_thread];
 
         if(remaining_threads == 8'd0) begin
             seq_over = 1'b1;
@@ -54,6 +65,22 @@ module Cache_Arbiter#(parameter BLOCK_SIZE = 8, IDX_SIZE = 4)(
     always_ff@(posedge clk) begin
         if(reset || seq_over) begin
             threads_mask <= 8'b0;
+        end
+        else if(wb_init_mask_valid) begin
+            threads_mask <= wb_init_mask;
+        end
+        else if(alloc_init_mask_valid) begin
+            threads_mask <= alloc_init_mask;
+        end
+        else if(wb_seq_active)begin // only update if memory controller/bus is ready to accept next cache line
+            if(write_mem_valid) begin // memory/memory controller allows us to write
+                threads_mask <= threads_mask | threads_en;
+            end
+        end
+        else if(alloc_seq_active) begin
+            if(read_mem_valid) begin // memory/memory controller allows us to read
+                threads_mask <= threads_mask | threads_en;
+            end
         end
         else begin
             threads_mask <= threads_mask | threads_en;

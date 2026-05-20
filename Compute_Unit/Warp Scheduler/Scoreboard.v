@@ -20,6 +20,9 @@ module Scoreboard#(parameter DATA_WIDTH = 16,
     wire [7:0] threads_busy;
     wire [7:0] threads_clear;
 
+    wire [31:0] full_busy_mask;
+    wire [31:0] full_clear_mask;
+
     Threads_Mask_Decoder tmd_busy(
         .threads_mask(threads_mask_busy),
         .active_threads(threads_busy)
@@ -29,20 +32,21 @@ module Scoreboard#(parameter DATA_WIDTH = 16,
         .threads_mask(threads_mask_clear),
         .active_threads(threads_clear)
     );
+
+    assign full_busy_mask  = busy_en  ? ({24'd0, threads_busy}  << (warp_num_busy * 8))  : 32'd0;
+    assign full_clear_mask = done_bit ? ({24'd0, threads_clear} << (warp_num_clear * 8)) : 32'd0;
     
     always @(posedge clk) begin
         if(reset) begin
             threads_file <= 32'd0;
         end
         else begin
-            if(done_bit) begin
-                threads_file[8*(warp_num_clear + 1) - 1 -: 8] <= threads_file[8*(warp_num_clear + 1) - 1 -: 8] & ~threads_clear;
-            end
-            if(busy_en) begin
-                threads_file[8*(warp_num_busy + 1) - 1 -: 8] <= threads_file[8*(warp_num_busy + 1) - 1 -: 8] | threads_busy;
-            end
+            // Apply clears first, then sets. 
+            // If both happen on the exact same thread in the same cycle, 'busy' wins.
+            threads_file <= (threads_file & ~full_clear_mask) | full_busy_mask;
         end
     end
+
 
     assign busy_threads = threads_file;
 
