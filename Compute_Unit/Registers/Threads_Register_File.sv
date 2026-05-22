@@ -22,7 +22,7 @@ module Threads_Register_File#(parameter DATA_WIDTH = 16,
     input logic [7:0] blockDim, // 1D, number of threads in a block, comes from outside of compute unit
 
     output logic [DATA_WIDTH-1:0] reg_read_data_instr [7:0], 
-    output logic [DATA_WIDTH-1:0] threadIdx [7:0],  // goes to AGU
+    // output logic [DATA_WIDTH-1:0] threadIdx [7:0],  // goes to AGU, can't have this because it takes up too much area to have a third read port. Delegate to AGU for threadIdx caluclation
     output logic [DATA_WIDTH-1:0] reg_read_data_push [7:0] // to push unit
     ); 
 
@@ -44,7 +44,7 @@ module Threads_Register_File#(parameter DATA_WIDTH = 16,
     always_ff @(posedge clk or posedge reset) begin
         if(reset) begin
             for(i = 0; i < NUM_THREADS; i = i+1)
-                for(j = 0; j < 16; j = j+1)
+                for(j = 0; j < 13; j = j+1) // protect the threadIdx, blockIdx, and blockDim registers from being reset
                     reg_file[i][j] <= 16'd0;
         end
         else if(reg_write_en && (reg_write_addr < 13)) begin
@@ -57,8 +57,8 @@ module Threads_Register_File#(parameter DATA_WIDTH = 16,
     always_comb begin
         for(i = 0; i < 8; i = i+1) begin
             reg_read_data_instr[i] = reg_file[(instr_warp_num_read*8) + i][instr_reg_read_addr];
-            threadIdx[i] = reg_file[(instr_warp_num_read*8) + i][13];
-            reg_read_data_push[i] = reg_file[(push_warp_num_read*8) + 1][push_reg_read_addr];
+            // threadIdx[i] = reg_file[(instr_warp_num_read*8) + i][13];
+            reg_read_data_push[i] = reg_file[(push_warp_num_read*8) + i][push_reg_read_addr];
         end
     end
 

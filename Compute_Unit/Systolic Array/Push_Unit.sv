@@ -36,9 +36,10 @@ module Push_Unit#(parameter DATA_WIDTH = 16)(
     );
 
     logic [3:0] counter; // 11? total steps in the systolic array matrix processing
-    logic push_valid;
+    logic push_valid, counter_valid;
 
-    assign push_valid = (counter < 7 && !pause);
+
+    assign push_valid = (counter < 8 && !pause);
 
     always_comb begin
         if(push_valid) begin
@@ -74,26 +75,33 @@ module Push_Unit#(parameter DATA_WIDTH = 16)(
             top3_valid = 0;
         end
         else begin
-            corner_valid = (counter >= 0) && (counter < 4);
-            left1_valid = (counter >= 1) && (counter < 5);
-            left2_valid = (counter >= 2) && (counter < 6);
-            left3_valid = (counter >= 3) && (counter < 7);
+            corner_valid = (counter >= 1) && (counter < 5);
+            left1_valid = (counter >= 2) && (counter < 6);
+            left2_valid = (counter >= 3) && (counter < 7);
+            left3_valid = (counter >= 4) && (counter < 8);
 
-            top1_valid = (counter >= 1) && (counter < 5);
-            top2_valid = (counter >= 2) && (counter < 6);
-            top3_valid = (counter >= 3) && (counter < 7);
+            top1_valid = (counter >= 2) && (counter < 6);
+            top2_valid = (counter >= 3) && (counter < 7);
+            top3_valid = (counter >= 4) && (counter < 8);
         end
     end
 
     always_ff@(posedge clk or posedge reset) begin
-        if(reset || start_push) begin
+        if(reset) begin
             counter <= 0;
         end
-        else if(counter < 10 && !pause) begin
+        else if(start_push) begin // KEEP IN MIND: computation won't start until the cycle AFTER start_push is asserted
+            counter <= 1;
+            counter_valid <= 1;
+        end
+        else if(counter < 11 && !pause && counter_valid) begin
             counter <= counter + 1;
+        end
+        else if(counter == 11) begin
+            counter_valid <= 0;
         end
     end
 
-    assign matmul_done = counter == 10;
+    assign matmul_done = counter == 11;
 
 endmodule

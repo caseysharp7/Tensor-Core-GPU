@@ -16,19 +16,18 @@ module Instruction_Buffer(
     output logic [3:0] opcode_out [3:0], // to scheduler {
     output logic [3:0] target_reg_out [3:0],
     output logic [3:0] address_reg_out [3:0],
-    output logic [3:0] imm_short_out [3:0], 
+    output logic [3:0] imm_short_out [3:0], // used for threads masks
     output logic [1:0] array_id_out [3:0] // }
     );
-
+// include a valid bit to tell if a certain warp insruction is ready, ie. it has received it's new instruction from the fetch pipeline
     parameter BUFFER_WIDTH = 4 + 4 + 4 + 4 + 2;
     parameter NUM_WARPS = 4;
 
     reg [BUFFER_WIDTH-1:0] buffer [3:0];
 
-    integer i;
     always_ff @(posedge clk) begin
         if(reset) begin
-            for(i = 0; i < NUM_WARPS; i = i+1) begin
+            for(int i = 0; i < NUM_WARPS; i = i+1) begin
                 buffer[i] <= {BUFFER_WIDTH{1'b0}};
             end
         end
@@ -38,7 +37,7 @@ module Instruction_Buffer(
     end
 
     always_comb begin
-        for(i = 0; i < NUM_WARPS; i = i+1) begin
+        for(int i = 0; i < NUM_WARPS; i = i+1) begin
             opcode_out[i] = buffer[i][BUFFER_WIDTH-1 -: 4];
             target_reg_out[i] = buffer[i][BUFFER_WIDTH-5 -: 4];
             address_reg_out[i] = buffer[i][BUFFER_WIDTH-9 -: 4];

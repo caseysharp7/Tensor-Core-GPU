@@ -16,7 +16,7 @@ module Global_Register_File#(parameter DATA_WIDTH = 16)(
     );
 
     reg [DATA_WIDTH-1:0] reg_file [15:0]; // 16 helper registers
-
+    // need to have a block to writes until the warp that wrote to that register reads it
     integer i;
     always @(posedge clk or posedge reset) begin
         if(reset) begin

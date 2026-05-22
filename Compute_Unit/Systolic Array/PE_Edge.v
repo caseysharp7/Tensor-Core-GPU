@@ -14,7 +14,7 @@ module PE_Edge#(parameter DATA_WIDTH = 16)(
     );
 
     wire [DATA_WIDTH-1:0] in, out, right, bottom;
-    reg [DATA_WIDTH-1:0] prod;
+    reg [DATA_WIDTH-1:0] prod, left_reg_in, top_reg_in;
 
     always@(*) begin
         if(valid_bit)
@@ -29,13 +29,23 @@ module PE_Edge#(parameter DATA_WIDTH = 16)(
         .clk(clk), .reset(reset), .d(out), .q(in)
     );
 
+    always@(*) begin // registers mux depending on valid bit
+        if(valid_bit) begin
+            left_reg_in = left_in;
+            top_reg_in = top_in;
+        end else begin
+            left_reg_in = 16'd0;
+            top_reg_in = 16'd0;
+        end
+    end
+
     PE_Reg_In#(.REG_WIDTH(DATA_WIDTH)) register_in_left(
         .clk(clk), .reset(reset), .pause(pause),
-        .d(left_in), .q(right)
+        .d(left_reg_in), .q(right)
     );
     PE_Reg_In#(.REG_WIDTH(DATA_WIDTH)) register_in_top(
         .clk(clk), .reset(reset), .pause(pause),
-        .d(top_in), .q(bottom)
+        .d(top_reg_in), .q(bottom)
     );
 
     assign right_out = right;

@@ -10,6 +10,7 @@ module LSU#(parameter DATA_WIDTH = 16, ADDR_WIDTH = , NUM_THREADS = 8)(
     input mem_read_req, mem_write_req,
     input [NUM_THREADS-1:0] mem_read_threads_en, mem_write_threads_en,
     input cache_ready, shared_mem_ready, // signals from cache and shared memory to indicate when ready
+    input logic cache_data_ready, shared_mem_data_ready, // signals from cache and shared memory to indicate when data is ready to be read
 
     input logic [1:0] reg_warp_num, cache_warp_num,
     input logic [1:0] instr_type, // load, load from memory, load from shared memory
@@ -23,7 +24,43 @@ module LSU#(parameter DATA_WIDTH = 16, ADDR_WIDTH = , NUM_THREADS = 8)(
     output logic [DATA_WIDTH-1:0] reg_cache_data_out [NUM_THREADS-1:0] // to cache
     output logic [DATA_WIDTH-1:0] reg_shared_mem_data_out [NUM_THREADS-1:0] // to shared memory
     output logic [DATA_WIDTH-1:0] mem_data_out [NUM_THREADS-1:0] // shared memory/cache data out to threads register file
+
+    // metadata needed for each of shared memory, cache, and reg file:
+    
     );
+
+    logic [DATA_WIDTH-1:0] hardwired_threadIdx [NUM_THREADS-1:0];
+    logic [ADDR_WIDTH-1:0] addr_out [NUM_THREADS-1:0];
+
+    genvar i;
+    generate
+        for(i = 0; i < NUM_THREADS; i = i+1) begin
+            assign hardwired_threadIdx[i] = (reg_warp_num * NUM_THREADS) + i; // hardwired threadIdx for each thread in the warp, used for AGU calculations
+        end
+    endgenerate
+
+    AGU agu ( // acceptable for loads and stores currently as we'll load from and store to contiguous memory
+        .threadIdx(hardwired_threadIdx),
+        .warp_num(warp_num),
+        .base_addr_reg(base_addr_reg),
+        .base_addr_imm(base_addr_imm),
+        .addr(addr_out)
+    ); // Maybe can modify this using the global register file to allow non contiguous memory accesses using different offsets held in the global register file
+    // Cache should handle non contiguous memory accesses fine
+
+    logic mem_decision_bit; // 0 for cache, 1 for shared memory, it decides whether the LSU takes data from cache or shared memory to write back to the register file for load instructions
+    logic collision_bit;
+    assign collision_bit = (cache_data_ready && shared_mem_data_ready); 
+
+    always_ff @(posedge clk) begin
+        if(reset) begin
+            mem_decision_bit <= 0;
+        end
+        else if (collision_bit) begin
+            mem_decision_bit <= ~mem_decision_bit; // flip the bit each time there's a collision to alternate between cache and shared memory for load instructions
+        end
+    end
+
 
     logic reg_cache_buffer_empty, reg_cache_buffer_full;
     logic reg_shared_mem_buffer_empty, reg_shared_mem_buffer_full;
@@ -37,17 +74,6 @@ module LSU#(parameter DATA_WIDTH = 16, ADDR_WIDTH = , NUM_THREADS = 8)(
 
     logic [DATA_WIDTH-1:0] reg_data_in_buffer [NUM_THREADS-1:0];
 
-    logic mem_decision_bit; // 0 for cache, 1 for shared memory, it decides whether the LSU takes data from cache or shared memory to write back to the register file for load instructions, flip each time
-
-    AGU agu ( // acceptable for loads and stores currently as we'll load from and store to contiguous memory
-        .reset(reset),
-        .threadIdx(threadIdx),
-        .warp_num(warp_num),
-        .base_addr_reg(base_addr_reg),
-        .base_addr_imm(base_addr_imm),
-        .addr(addr_temp)
-    ); // Maybe can modify this using the global register file to allow non contiguous memory accesses using different offsets held in the global register file
-    // Cache should handle non contiguous memory accesses fine
 
     FIFO_Buffer reg_data_cache_buffer(
         .clk(clk), .reset(reset),
@@ -81,226 +107,26 @@ module LSU#(parameter DATA_WIDTH = 16, ADDR_WIDTH = , NUM_THREADS = 8)(
         .empty(shared_mem_buffer_empty), .full(shared_mem_buffer_full)
     ); // from shared memory to reg file
 
-    // NEED: Multiplexor logic to decide bewteen shared memory and cache data for mem_data_out
-
-    always_ff@(posedge clk) begin
-        if(reset) begin
-            
-        end
-        else begin
-            mem_decision_bit <= ~mem_decision_bit; // flip the bit each time to alternate between cache and shared memory for load instructions
-        end
-    end
 
     always_comb begin
-        reg_cache_buffer_write_en = 0;
-        reg_cache_buffer_read_en = 0;
-        reg_shared_mem_buffer_write_en = 0;
-        reg_shared_mem_buffer_read_en = 0;
-
-        cache_buffer_write_en = 0;
-        cache_buffer_read_en = 0;
-        shared_mem_buffer_write_en = 0;
-        shared_mem_buffer_read_en = 0;
-
-
-        // default behavior of each buffer:
-        if(cache_ready && !reg_cache_buffer_empty) begin
-            reg_cache_data_out = reg_cache_data_out_buffer;
-            reg_cache_buffer_write_en = 0;
-            reg_cache_buffer_read_en = 1;
-        end
-        else begin
-            // do nothing
-        end
-        
-        if(shared_mem_ready && !reg_shared_mem_buffer_empty) begin
-            reg_shared_mem_data_out = reg_shared_mem_data_out_buffer;
-            reg_shared_mem_buffer_write_en = 0;
-            reg_shared_mem_buffer_read_en = 1;
-        end
-        else begin
-            // do nothing
-        end
-
-
-        // reg checking (for store, reg file data -> LSU)
-        // will need to expand buffer atleast for going to cache because needs address, etc.
-        if(instr_type == CACHE_STORE) begin
-            if(cache_ready) begin
-                if(reg_cache_buffer_empty) begin // if there's nothing in the buffer
-                    reg_cache_data_out = reg_data_in;
-                    reg_cache_buffer_write_en = 0;
-                    reg_cache_buffer_read_en = 0;
-                end
-                else begin
-                    reg_cache_data_out = reg_cache_data_out_buffer;
-
-                    // into buffer
-                    reg_data_in_buffer = reg_data_in;
-
-                    // en signals
-                    reg_cache_buffer_write_en = 1;
-                    reg_cache_buffer_read_en = 1;
-                end
-            end
-            else begin
-                if(reg_cache_buffer_full) begin
-                    // stall processor
-                end
-                reg_cache_buffer_write_en = 1;
-                reg_cache_buffer_read_en = 0;
-            end
-        end
-
-        else if(instr_type == SHARED_MEM_STORE) begin
-            if(shared_mem_ready) begin
-                if(reg_shared_mem_buffer_empty) begin // if there's nothing in the buffer
-                    reg_shared_mem_data_out = reg_data_in;
-                    reg_shared_mem_buffer_write_en = 0;
-                    reg_shared_mem_buffer_read_en = 0;
-                end
-                else begin
-                    reg_shared_mem_data_out = reg_shared_mem_data_out_buffer;
-
-                    // into buffer
-                    reg_data_in_buffer = reg_data_in;
-
-                    // en signals
-                    reg_shared_mem_buffer_write_en = 1;
-                    reg_shared_mem_buffer_read_en = 1;
-                end
-            end
-            else begin
-                if(reg_shared_mem_buffer_full) begin
-                    // stall processor
-                end
-                reg_shared_mem_buffer_write_en = 1;
-                reg_shared_mem_buffer_read_en = 0;
-            end
-        end
-        else begin
-            // do nothing
-        end
-
-        // cache + shared memory checking (for load, shared memory/cache -> LSU)
-        if(cache_buffer_empty && shared_mem_buffer_empty) begin
-            if(cache_data_ready && shared_mem_data_ready) begin
-                if(!mem_decision_bit) begin // cache selected
-                    mem_data_out = cache_data_in;
-                    shared_mem_buffer_write_en = 1;
-                end
-                else begin
-                    mem_data_out = shared_mem_data_in;
-                    cache_buffer_write_en = 1;
-                end
-            end
-            else if(cache_data_ready) begin
-                mem_data_out = cache_data_in;
-            end
-            else if(shared_mem_data_ready) begin
-                mem_data_out = shared_mem_data_in;
-            end
-            else begin
-                // do nothing
-            end
-        end
-
-        else if(!cache_buffer_empty && shared_mem_buffer_empty) begin
-            mem_data_out = cache_data_out;
-            cache_buffer_read_en = 1;
-
-            if(cache_data_ready) begin
-                cache_buffer_write_en = 1;
-            end
-            else begin
-                // do nothing
-            end
-
-            if(shared_mem_data_ready) begin
-                shared_mem_buffer_write_en = 1;
-            end
-            else begin
-                // do nothing
-            end
-        end
-
-        else if(cache_buffer_empty && !shared_mem_buffer_empty) begin
-            mem_data_out = shared_mem_data_out;
-            shared_mem_buffer_read_en = 1;
-
-            if(shared_mem_data_ready) begin
-                shared_mem_buffer_write_en = 1;
-            end
-            else begin
-                // do nothing
-            end
-
-            if(cache_data_ready) begin
-                cache_buffer_write_en = 1;
-            end
-            else begin
-                // do nothing
-            end
-        end
-
-        else begin
-            // if both buffers have data, can prioritize cache over shared memory or vice versa depending on mem_decision_bit
-            if(!mem_decision_bit) begin
-                mem_data_out = cache_data_out;
-                cache_buffer_read_en = 1;
-
-                if(cache_data_ready) begin
-                    cache_buffer_write_en = 1;
-                end
-                else begin
-                    // do nothing
-                end
-
-                if(shared_mem_data_ready) begin
-                    shared_mem_buffer_write_en = 1;
-                end
-                else begin
-                    // do nothing
-                end
-            end
-            else begin
-                mem_data_out = shared_mem_data_out;
-                shared_mem_buffer_read_en = 1;
-
-                if(shared_mem_data_ready) begin
-                    shared_mem_buffer_write_en = 1;
-                end
-                else begin
-                    // do nothing
-                end
-
-                if(cache_data_ready) begin
-                    cache_buffer_write_en = 1;
-                end
-                else begin
-                    // do nothing
-                end
-            end
-        end
-
         // flattened and corrected logic: 
 
-        reg_cache_buffer_write_en       = 0;
-        reg_cache_buffer_read_en        = 0;
-        reg_shared_mem_buffer_write_en  = 0;
-        reg_shared_mem_buffer_read_en   = 0;
-        cache_buffer_write_en           = 0;
-        cache_buffer_read_en            = 0;
-        shared_mem_buffer_write_en      = 0;
-        shared_mem_buffer_read_en       = 0;
+        reg_cache_buffer_write_en = 1'b0;
+        reg_cache_buffer_read_en = 1'b0;
+        reg_shared_mem_buffer_write_en = 1'b0;
+        reg_shared_mem_buffer_read_en = 1'b0;
+
+        cache_buffer_write_en = 1'b0;
+        cache_buffer_read_en = 1'b0;
+        shared_mem_buffer_write_en = 1'b0;
+        shared_mem_buffer_read_en = 1'b0;
         
-        mem_data_out                    = 0;
+        mem_data_out = 1'b0;
 
         logic cache_consumed;
         logic shared_mem_consumed;
-        cache_consumed = 0;
-        shared_mem_consumed = 0;
+        cache_consumed = 1'b0;
+        shared_mem_consumed = 1'b0;
 
         // reg checking (for store, reg file data -> LSU -> memory)
         // will need to expand buffer atleast for going to cache because needs address, etc.
@@ -406,8 +232,6 @@ module LSU#(parameter DATA_WIDTH = 16, ADDR_WIDTH = , NUM_THREADS = 8)(
                 shared_mem_buffer_write_en = 1;
             end
         end
-
     end
-
 
 endmodule

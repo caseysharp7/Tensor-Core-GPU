@@ -2,6 +2,8 @@
 
 `timescale 1ns / 1ps
 
+// need to have input regarding a stall from the LSU if there is a full buffer
+// This should stall the whole pipeline until the buffer is no longer full
 module Warp_Scheduler#(parameter PC_WIDTH=8,
                        parameter DATA_WIDTH = 16,
                        parameter NUM_THREADS = 32)(
@@ -16,7 +18,7 @@ module Warp_Scheduler#(parameter PC_WIDTH=8,
     input [3:0] threads_mask_clear, // from LSU
     input done_bit, // from LSU
     input matmul_done, // from push or pull unit when matmul finishes
-
+    input stall, // from LSU if buffer is full
 
     output [PC_WIDTH-1:0] pc, // to instr fetch
     output [PC_WIDTH-1:0] global_pc_out, // to global instr fetch
@@ -29,12 +31,12 @@ module Warp_Scheduler#(parameter PC_WIDTH=8,
     output [3:0] push_reg_out // to threads register file
     );
 
-    wire [1:0] select_warp;
     wire [PC_WIDTH-1:0] pc_array [3:0];
     reg push_active; // tells if the processor is currently pushing the systolic array
     reg global_pc;
 
     wire [3:0] ready_warps_current;
+    wire [3:0] pc_update_en;
     genvar i;
     generate  // create 4 warp states to hold metadata for the 4 warps
         for(i = 0; i < 4; i = i+1) begin : loop1
@@ -42,7 +44,7 @@ module Warp_Scheduler#(parameter PC_WIDTH=8,
                 .clk(clk),
                 .reset(reset),
                 .future_ready(ready_warps_next[i]),
-                .pc_update_en(),
+                .pc_update_en(pc_update_en[i]),
 
                 .pc(pc_array[i]),
                 .ready_out(ready_warps_current[i])
@@ -51,7 +53,12 @@ module Warp_Scheduler#(parameter PC_WIDTH=8,
     endgenerate
 
     always_ff@(posedge clk) begin
-        global_pc = global_pc+2;
+        if(reset)
+            global_pc <= 0;
+        else
+            global_pc = global_pc+2;
+
+        // Look to implement synchronization logic for stalls
     end
 
     assign global_pc_out = global_pc;
@@ -92,24 +99,18 @@ module Warp_Scheduler#(parameter PC_WIDTH=8,
         .ready_warps(ready_warps_next)
     );
 
+    wire busy_en;
     Scoreboard scoreboard_inst(
         .clk(clk), .reset(reset),
         .warp_num_busy(instr_warp_internal), // from warp selector set once the next warp gets chosen
         .warp_num_clear(warp_num_clear),
         .threads_mask_busy(), 
         .threads_mask_clear(threads_mask_clear),
-        .busy_en(), // from controller, only marked busy if the instruction is LD or ST (dram operation)
+        .busy_en(busy_en), // from controller, only marked busy if the instruction is LD or ST (dram operation)
         .done_bit(done_bit),
         .busy_threads(busy_threads)
     );
 
-    FIFO_Register_Buffer reg_buf_inst(
-        .clk(clk), .reset(reset),
-        .write_en(), // from controller when load instruction is issued
-        .read_en(), // maybe from warp selector while push is active? Otherwise controller
-        .write_reg(), // from instruction buffer when load is issued
-        .read_reg(push_reg_out) // to threads register file
-    );
 
     Warp_Selector selector_inst(
         .clk(clk), 
@@ -125,9 +126,11 @@ module Warp_Scheduler#(parameter PC_WIDTH=8,
     );
 
     assign instr_warp_out = instr_warp_internal;
+    assign pc_update_en[instr_warp_internal] = 1'b1; // only update the pc of the warp that is selected
 
     Controller controller_inst(
         
+        (busy_en), // output to scoreboard
     );
 
 
@@ -136,7 +139,7 @@ module Warp_Scheduler#(parameter PC_WIDTH=8,
         .b(pc_array[1]),
         .c(pc_array[2]),
         .d(pc_array[3]),
-        .sel(select_warp),
+        .sel(instr_warp_internal),
         .y(pc)
     );
 

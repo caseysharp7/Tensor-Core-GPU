@@ -9,23 +9,21 @@ module Warp_Selector(
     input push_en, // from control
     input matmul_done, // from push or pull unit when push completes
 
-    output reg [1:0] push_warp, 
-    output reg [1:0] instr_warp,
+    output [1:0] push_warp, 
+    output [1:0] instr_warp,
     output reg pause, // pause for systolic array if needed warp is not ready
     output all_busy // indicates if all warps are busy, need to stall the whole processor
     );
-
+/*
     parameter NUM_WARPS = 4;
+
+    wire push_active;
 
     reg [1:0] systolic_warp_prev, systolic_warp_next; // used for when push is active to track which warp should be selected
     reg [1:0] instr_warp_ptr; // which 
     reg [1:0] next_instr_warp_ptr;
-    reg push_active;
+    reg push_active_reg;
     reg [3:0] ready_warps_temp, sel_out;
-
-    always@(*) begin
-        ready_warps_temp = ready_warps;
-    end
 
     always@(posedge clk) begin
         if(reset) begin
@@ -33,16 +31,16 @@ module Warp_Selector(
             systolic_warp_next <= 2'b0;
             systolic_warp_prev <= 2'b0;
         end
+        else if(matmul_done) begin
+            push_active <= 1'b0;
+        end
         else if(push_en) begin
-            push_active <= 1'b1;
+            push_active_reg <= 1'b1;
             systolic_warp_prev <= 2'd0; // can change this if determine that instruction tells which warp to start with
             systolic_warp_next <= 2'd0;
             if(ready_warps[0]) begin
                 systolic_warp_prev <= systolic_warp_prev + 1;
             end
-        end
-        else if(matmul_done) begin
-            push_active <= 1'b0;
         end
         else if(ready_warps[systolic_warp_prev]) begin
             systolic_warp_next <= systolic_warp_prev;
@@ -52,6 +50,7 @@ module Warp_Selector(
         instr_warp_ptr <= next_instr_warp_ptr;
     end
     
+    assign push_active = push_en || push_active_reg;
     assign all_busy = (ready_warps == 4'b0000) ? 1'b1 : 1'b0;
 
     function automatic [3:0] select_instr_warp(
@@ -84,9 +83,9 @@ module Warp_Selector(
     endfunction
 
     always@(*) begin
+        ready_warps_temp = ready_warps;
         if(push_active) begin
             if(!ready_warps_temp[systolic_warp_next]) begin
-                push_warp = 2'd0;
                 pause = 1'b1;
             end
             else begin
@@ -99,5 +98,42 @@ module Warp_Selector(
         next_instr_warp_ptr = sel_out[3:2];
         instr_warp = sel_out[1:0];
     end
+*/
+
+    reg [1:0] current_push_ptr;
+    reg [1:0] prev_push_ptr;
+    reg push_active;
+
+    always@(posedge clk) begin
+        if (reset) begin
+            push_active      <= 1'b0;
+            current_push_ptr <= 2'b0;
+            prev_push_ptr    <= 2'b3; // Initialized so first "prev" is 3
+        end else begin
+            if (push_en) begin
+                push_active      <= 1'b1;
+                current_push_ptr <= 2'b0; // Reset to start at Warp 0
+                prev_push_ptr    <= 2'b3; 
+            end else if (matmul_done) begin
+                push_active      <= 1'b0;
+            end else if (push_active && !pause) begin
+                current_push_ptr <= current_push_ptr + 1;
+                prev_push_ptr    <= current_push_ptr; // follows one cycle behind
+            end
+        end
+    end
+
+    always@(*) begin
+        // pause if needed warp is not ready
+        if (push_active && !ready_warps[current_push_ptr]) begin
+            pause = 1'b1;
+        end else begin
+            pause = 1'b0;
+        end
+    end
+
+    assign push_warp  = current_push_ptr;
+    assign instr_warp = prev_push_ptr;
+    assign all_busy   = (ready_warps == 4'b0000);
 
 endmodule
