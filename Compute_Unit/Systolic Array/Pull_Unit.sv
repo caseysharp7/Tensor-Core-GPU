@@ -1,15 +1,15 @@
 // Pull Unit
 
-module Pull_Unit(
-    input clk, reset,
-    input start_pull, // from scheduler (control) when a pull instruction is executed (this can be a global instructions bc threads don't need to do anything)
-    input matmul_done, // from push unit to confirm matmul is done
-    input [DATA_WIDTH-1:0] result0, result1, result2, result3, result4, result5, result6, result7, result8, result9, result10, result11, result12, result13, result14, result15, // from systolic array
+module Pull_Unit#(parameter DATA_WIDTH = 16)(
+    input logic clk, reset,
+    input logic start_pull, // from scheduler (control) when a pull instruction is executed (this can be a global instructions bc threads don't need to do anything)
+    input logic matmul_done, // from push unit to confirm matmul is done
+    input logic [DATA_WIDTH-1:0] result0, result1, result2, result3, result4, result5, result6, result7, result8, result9, result10, result11, result12, result13, result14, result15, // from systolic array
 
-    output [DATA_WIDTH-1:0] reg_write_data [7:0] // to threads reg file
+    output logic [DATA_WIDTH-1:0] reg_write_data [7:0] // to threads reg file
     );
 
-    reg [1:0] counter;
+    logic [1:0] counter;
 
     always@(posedge clk or posedge reset)begin
         if(reset || (start_pull && matmul_done)) begin
