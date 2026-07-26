@@ -136,7 +136,7 @@ module Systolic_Array_tb;
         $display("\nCorner valid before clock edge: %b at time %0t", corner_valid, $time);
 
         reset = 0;
-        #10;
+        #20;
 
         $display("\nCorner valid before clock edge: %b at time %0t", corner_valid, $time);
 
@@ -146,25 +146,12 @@ module Systolic_Array_tb;
         $display("\nstart push value: %b", start_push);
         $display("\nCorner valid before clock edge: %b at time %0t", corner_valid, $time);
         
-        @(posedge clk);
         start_push = 1;
+        @(posedge clk);
+        
 
         $display("\nCorner valid after clock edge: %b at time %0t", corner_valid, $time);
         $display("\nstart push value: %b", start_push);
-
-        $display("\nCycle -1 prepared.");
-            $display("Left input (A): %d %d %d %d", load_data[0], load_data[1], load_data[2], load_data[3]);
-            $display("Top inputs (B): %d %d %d %d", load_data[4], load_data[5], load_data[6], load_data[7]);
-
-            $display("\nCorner valid: %b, Left1 valid: %b, Left2 valid: %b, Left3 valid: %b, Top1 valid: %b, Top2 valid: %b, Top3 valid: %b",
-                corner_valid, left1_valid, left2_valid, left3_valid, top1_valid, top2_valid, top3_valid);
-
-            $display("\nResults from Systolic Array:");
-            $display("result[0:3]   = %d %d %d %d", result0, result1, result2, result3);
-            $display("result[4:7]   = %d %d %d %d", result4, result5, result6, result7);
-            $display("result[8:11]  = %d %d %d %d", result8, result9, result10, result11);
-            $display("result[12:15] = %d %d %d %d", result12, result13, result14, result15);
-
 
         // FIXED LOOP: Apply data immediately to the current counter phase, THEN cycle the clock
         for(int cycle=0; cycle<10; cycle++) begin

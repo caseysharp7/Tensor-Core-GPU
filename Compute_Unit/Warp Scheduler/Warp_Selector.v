@@ -134,6 +134,6 @@ module Warp_Selector(
 
     assign push_warp  = current_push_ptr;
     assign instr_warp = prev_push_ptr;
-    assign all_busy   = (ready_warps == 4'b0000);
+    assign all_busy = (ready_warps == 4'b0000);
 
 endmodule

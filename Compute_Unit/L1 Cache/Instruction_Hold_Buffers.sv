@@ -54,10 +54,10 @@ module Instruction_Hold_Buffers#(parameter ADDR_WIDTH = 32, DATA_WIDTH = 16, BLO
         logic [3:0] reg_num;
         logic instr_type;
 
-        logic [NUM_THREADS:0] ihb_mask;
+        logic [NUM_THREADS-1:0] ihb_mask;
     } instruction_hold_buffer_t;
 
-    cache_busy_warp_t instruction_buffer [DEPTH-1:0];
+    instruction_hold_buffer_t instruction_buffer [DEPTH-1:0];
     logic [DEPTH-1:0] busy_buffers;
     logic [$clog2(DEPTH)-1:0] first_available;
     logic [$clog2(DEPTH)-1:0] complete_buffer;
@@ -65,9 +65,11 @@ module Instruction_Hold_Buffers#(parameter ADDR_WIDTH = 32, DATA_WIDTH = 16, BLO
     assign full = &(busy_buffers);
 
     always_comb begin
+        first_available = '0;
+
         for(int i = 0; i < DEPTH; i = i+1) begin
             if(!busy_buffers[i]) begin
-                first_available = i;
+                first_available = i[$clog2(DEPTH)-1:0];
                 break;
             end
         end
@@ -82,7 +84,7 @@ module Instruction_Hold_Buffers#(parameter ADDR_WIDTH = 32, DATA_WIDTH = 16, BLO
                     instruction_buffer[i].idx[j] <= 0;
                     instruction_buffer[i].data[j] <= 0;
                 end
-                instructions_buffer[i].active_threads <= 0;
+                instruction_buffer[i].active_threads <= 0;
                 instruction_buffer[i].warp_num <= 0;
                 instruction_buffer[i].reg_num <= 0;
                 instruction_buffer[i].instr_type <= 0;

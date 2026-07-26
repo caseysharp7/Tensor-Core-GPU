@@ -26,6 +26,8 @@ module Instruction_Mem#(
     assign global_instruction = rom[read_global_addr[7:1]];
 endmodule
 
+// I think we need to make instructions bigger: 20-24 bits
+
 // ISA: 
 // LD:    (opcode)  (destination register)  (address register)  (immediate (warp_mask))
 //        (0001)    (rrrr)                  (rrrr)              (iiii)

@@ -1,8 +1,8 @@
 // Cache Data
 
-'timescale 1ns / 1ps
+`timescale 1ns / 1ps
 
-module Cache_Data#(parameter ADDR_WIDTH = 32, DATA_WIDTH = 16, BLOCK_SIZE = 8, NUM_BLOCKS = 16, IDX_SIZE = $clog2(NUM_BLOCKS), BLOCK_OFFSET_WIDTH = $clog2(BLOCK_SIZE))(
+module Cache_Data#(parameter ADDR_WIDTH = 32, DATA_WIDTH = 16, BLOCK_SIZE = 8, NUM_THREADS = 8, NUM_BLOCKS = 16, IDX_SIZE = $clog2(NUM_BLOCKS), BLOCK_OFFSET_WIDTH = $clog2(BLOCK_SIZE))(
     input logic clk, reset,
 
     input logic [ADDR_WIDTH-1:0] addr_in [BLOCK_SIZE-1:0], // we need the address of each thread in the warp
@@ -61,7 +61,7 @@ module Cache_Data#(parameter ADDR_WIDTH = 32, DATA_WIDTH = 16, BLOCK_SIZE = 8, N
             alloc_init_mask[i] = hit[i];
             ihb_init_mask[i] = hit[i];
 
-            locked = locked | lock_bits[idx_in[i]]
+            locked = locked | lock_bits[idx_in[i]];
         end
     end
 

@@ -192,4 +192,77 @@ module Compute_Unit#(parameter PC_WIDTH = 8,
     );
 
 
+
+
+
+
+
+    LSU_Revised lsu_inst(
+        .clk(clk), .reset(reset),
+        .instr_valid(), // ??
+
+        .reg_data_in(),
+        .reg_active_threads_in(),
+        .reg_warp_num_in(),
+        .reg_reg_num_in(),
+        .reg_instr_type_in(),
+
+        .cache_ready(),
+        .cache_data_ready(),
+        .cache_data_in(),
+        .cache_active_threads_in(),
+        .cache_warp_num_in(),
+        .cache_reg_num_in(),
+
+        .shared_mem_ready(),
+        .shared_mem_data_ready(),
+        .shared_mem_data_in(),
+        .shared_mem_active_threads_in(),
+        .shared_mem_warp_num_in(),
+        .shared_mem_reg_num_in(),
+
+        .line_clear_en(),
+        .line_clear(),
+        .line_lock_en(),
+        .line_lock(),
+
+        // outputs
+        .mem_data_out(),
+        .mem_active_threads_out(),
+        .mem_warp_num_out(),
+        .mem_reg_num_out(),
+
+        .reg_cache_data_out(),
+        .cache_address_out(),
+        .reg_cache_active_threads_out(),
+        .reg_cache_warp_num_out(),
+        .reg_cache_reg_num_out(),
+        .reg_cache_instr_type_out(),
+
+        .reg_shared_mem_data_out(),
+        .shared_mem_address_out(),
+        .reg_shared_mem_active_threads_out(),
+        .reg_shared_mem_warp_num_out(),
+        .reg_shared_mem_reg_num_out(),
+        .reg_shared_mem_instr_type_out(),
+
+    );
+
+
+    Cache cache_inst(
+        .clk(clk), .reset(reset),
+
+
+
+    );
+
+
+
+    Memory_Buffer mem_buf_inst(
+
+    );
+
+
+
+
     endmodule

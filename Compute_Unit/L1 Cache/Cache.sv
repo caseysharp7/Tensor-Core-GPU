@@ -2,6 +2,8 @@
 // multi word cache line
 // 2KB
 
+`timescale 1ns / 1ps
+
 module Cache#(parameter ADDR_WIDTH = 32, DATA_WIDTH = 16, BLOCK_SIZE = 8, NUM_BLOCKS = 128, IDX_SIZE = $clog2(NUM_BLOCKS))(
     input logic clk, reset,
 
@@ -33,6 +35,12 @@ module Cache#(parameter ADDR_WIDTH = 32, DATA_WIDTH = 16, BLOCK_SIZE = 8, NUM_BL
     output logic [ADDR_WIDTH-1:0] mem_addr_out,
     output logic [DATA_WIDTH-1:0] mem_data_out [BLOCK_SIZE-1:0], // to main memory
     );
+
+    // NEED before testing cache funcionality:
+    // buffer for data coming back from memory
+    // LSQ to hold instructions that are waiting for a cache line to be unlocked
+
+    // Should also check with LSU to make sure the timing of ready/accept/reject signals make sense and are present
 
     // cache control outputs
     logic refill_accepted;
@@ -106,7 +114,7 @@ module Cache#(parameter ADDR_WIDTH = 32, DATA_WIDTH = 16, BLOCK_SIZE = 8, NUM_BL
         end
     end
 
-    always_ff @(posedge clk) begin // no need to buffer on refill as will complete in one cycle
+    always_ff @(posedge clk) begin 
         if(cache_req_latch) begin
             // need to buffer all data/metadata that could be needed for the ihb buffers
 
@@ -126,7 +134,7 @@ module Cache#(parameter ADDR_WIDTH = 32, DATA_WIDTH = 16, BLOCK_SIZE = 8, NUM_BL
 
         else if(ihb_instr_accepted) begin
             data_int = ihb_data_in; // ihb INTO the cache, OUT of the ihb
-            addr_in = ihb_addr_in; 
+            addr_int = ihb_addr_in; 
             active_threads_int = ihb_active_threads_in;
             warp_num_int = ihb_warp_num_in;
             reg_num_int = ihb_reg_num_in;
@@ -231,7 +239,7 @@ module Cache#(parameter ADDR_WIDTH = 32, DATA_WIDTH = 16, BLOCK_SIZE = 8, NUM_BL
         .warp_num_out(ihb_warp_num_in),
         .reg_num_out(ihb_reg_num_in),
         .instr_type_out(ihb_instr_type_in)
-    )
+    );
 
 
 
